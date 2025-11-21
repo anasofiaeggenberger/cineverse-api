@@ -1,5 +1,28 @@
-app.listen(PORT, async () => {
-  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import dotenv from "dotenv";
+import authRoutes from "./routes/authRoutes.js";
+import postRoutes from "./routes/postRoutes.js";
+import triviaRoutes from "./routes/triviaRoutes.js";
+
+dotenv.config();
+
+const app = express();
+
+// Middlewares
+app.use(express.json());
+app.use(cors());
+
+// Rutas
+app.use("/api/auth", authRoutes);
+app.use("/api/posts", postRoutes);
+app.use("/api/trivia", triviaRoutes);
+
+let isConnected = false;
+
+async function connectDB() {
+  if (isConnected) return;
 
   try {
     await mongoose.connect(process.env.MONGO_URI, {
@@ -7,8 +30,16 @@ app.listen(PORT, async () => {
       retryWrites: true,
       w: "majority",
     });
-    console.log("✅ Conectado a MongoDB Atlas correctamente");
+
+    isConnected = true;
+    console.log("✅ Conectado a MongoDB Atlas en Vercel");
   } catch (err) {
     console.error("❌ Error conectando a MongoDB:", err.message);
   }
-});
+}
+
+// --- Handler para Vercel ---
+export default async function handler(req, res) {
+  await connectDB();
+  return app(req, res);
+}
